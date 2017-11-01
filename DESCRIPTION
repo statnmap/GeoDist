@@ -1,0 +1,31 @@
+Package: GeoDist
+Type: Package
+Title: Constrained distance calculation and associated geotools
+Version: 0.1.0.8000
+Author: Sébastien Rochette
+Maintainer: Sébastien Rochette <sebastienrochettefr@gmail.com>
+Description: This package allows the calculation of distances that are
+    contrained by frontiers, islands, mountains, ... These distances are then
+    implemented in classical geotools like kriging with a modified version of geoR
+    functions.
+Depends: R (>= 3.0)
+License: GPL
+Encoding: UTF-8
+LazyData: true
+Imports:
+    dplyr,
+    geoR,
+    raster,    
+    igraph,
+    methods,
+    parallel,
+    rgdal,
+    snow,
+    sp
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat,
+    tcltk,
+VignetteBuilder: knitr
+RoxygenNote: 6.0.1
