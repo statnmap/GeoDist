@@ -8,9 +8,17 @@ Find.ngb.wo.obstacle(i, r.ref, coords.r, r.ref.NA.nb, cell.Relpos.ngb,
   cell.Relpos.cross)
 }
 \arguments{
-\item{r.ref}{}
+\item{i}{cell number}
+
+\item{r.ref}{reference raster}
 
 \item{coords.r}{coordinates of the reference raster}
+
+\item{r.ref.NA.nb}{Numerotation of NA ref.raster cells}
+
+\item{cell.Relpos.ngb}{Relative position of neighbours in the moving window}
+
+\item{cell.Relpos.cross}{Numerotation of positions of neighbours of the moving window}
 }
 \value{
 matrix with all neighbours of each cell that are not NA

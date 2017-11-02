@@ -1,15 +1,13 @@
 #' Class for distref.raster
 #'
-#' @slot r.ref.path
-#' @slot r.ref.dim
-#' @slot r.ref.N
-#' @slot r.ref.NA.nb
-#' @slot adj.ref.graph
-#' @slot path.w
+#' @slot r.ref.path path of the raster
+#' @slot r.ref.dim dimensions of the raster
+#' @slot r.ref.N cells numerotation
+#' @slot r.ref.NA.nb numerotation of NA cells
+#' @slot adj.ref.graph adjacency graph
+#' @slot path.w weight (distance) of paths
 #'
 #' @export
-#'
-#' @examples
 #'
 setClass("distref.raster",
          slots = c(r.ref.path = "character", r.ref.dim = "numeric",
@@ -31,7 +29,6 @@ setClass("distref.raster",
 #'
 #' @export
 #'
-#' @examples
 setClass("distref.data",
          slots = c(data.pt.N = "numeric",
                    NA.pos = "numeric",
@@ -321,16 +318,12 @@ distref.data <- function(data.pt, r.ref, closest = FALSE, longlat = isLonLat(r.r
 
 #' Find neighbours without obstacles in different directions
 #'
-#' @import rgdal
-#' @import sp
-#' @import raster
-#'
-#' @param i
+#' @param i cell number
 #' @param coords.r coordinates of the reference raster
-#' @param r.ref.NA.nb
-#' @param cell.Relpos.ngb
-#' @param cell.Relpos.cross
-#' @param r.ref
+#' @param r.ref.NA.nb Numerotation of NA ref.raster cells
+#' @param cell.Relpos.ngb Relative position of neighbours in the moving window
+#' @param cell.Relpos.cross Numerotation of positions of neighbours of the moving window
+#' @param r.ref reference raster
 #'
 #' @return matrix with all neighbours of each cell that are not NA
 #' @export

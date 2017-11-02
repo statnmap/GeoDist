@@ -10,9 +10,16 @@ Class for distref.raster
 \section{Slots}{
 
 \describe{
-\item{\code{path.w}}{}
+\item{\code{r.ref.path}}{path of the raster}
+
+\item{\code{r.ref.dim}}{dimensions of the raster}
+
+\item{\code{r.ref.N}}{cells numerotation}
+
+\item{\code{r.ref.NA.nb}}{numerotation of NA cells}
+
+\item{\code{adj.ref.graph}}{adjacency graph}
+
+\item{\code{path.w}}{weight (distance) of paths}
 }}
 
-\examples{
-
-}
