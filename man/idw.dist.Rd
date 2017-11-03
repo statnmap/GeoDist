@@ -8,6 +8,8 @@ idw.dist(data, coords, locations, loc.dist, idp = 2, max.dist, nmin = 1,
   nmax, longlat = TRUE)
 }
 \arguments{
+\item{data}{vector of values to be interpolated at data coordinates}
+
 \item{coords}{coordinates of observation points. Can also be an object of class
 SpatialPoints*. Not necessary with loc.dist.}
 
