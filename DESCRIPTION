@@ -8,15 +8,15 @@ Description: This package allows the calculation of distances that are
     contrained by frontiers, islands, mountains, ... These distances are then
     implemented in classical geotools like kriging with a modified version of geoR
     functions.
-Depends: R (>= 3.0)
+Depends: R (>= 3.0), geoR
 License: GPL
 Encoding: UTF-8
 LazyData: true
 Imports:
     dplyr,
-    geoR,
     raster,    
     igraph,
+    magrittr,
     methods,
     parallel,
     rgdal,
