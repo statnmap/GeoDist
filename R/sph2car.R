@@ -7,9 +7,11 @@
 #' @param radius major (equatorial) radius of the ellipsoid. The default value is for WGS84
 #' @param f numeric. Ellipsoid flattening. The default value is for WGS84
 #' @param deg Specifies if input is in degrees (default) or radians.
+#' @export
 #'
 #' @details
 #' Use geosphere::refEllipsoids() for other radius and f possibilites.
+#'
 sph2car <- function(long, lat, radius = 6378137, f = 1/298.257223563, deg = TRUE)
 {
   if (is.matrix(long) || is.data.frame(long)) {
