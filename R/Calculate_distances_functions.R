@@ -198,7 +198,7 @@ distref.raster <- function(r.ref, step.ang = 5,
                           function(i, r.ref, coords.r, r.ref.NA.nb,
                                    cell.Relpos.ngb,
                                    cell.Relpos.cross) {
-                            GeoDist::Find.ngb.wo.obstacle(i = i, r.ref, coords.r,
+                            Find.ngb.wo.obstacle(i = i, r.ref, coords.r,
                                                   r.ref.NA.nb, cell.Relpos.ngb,
                                                   cell.Relpos.cross)
                           }, r.ref = r.ref, coords.r = coords.r,
@@ -484,10 +484,19 @@ Pt2Pts.wo.obstacle <- function(dref.from, dref.to, dref.r,
 
     if (length(all.path) != 0) {
       allLines <- lapply(all.path, function(x) {
+      # Remove first and last path r.ref point to replace by location
+        pathmin <- sp::coordinates(r.ref)[head(shpath$vpath[[x]][-1],-1),]
+        if (is.null(nrow(pathmin))) {
+          pathmin <- data.frame(x = pathmin[1], y = pathmin[2])
+        }
+        if (nrow(pathmin) != 0) {
         coords <- rbind(A.xy,
-                        sp::coordinates(r.ref)[shpath$vpath[[x]],],
-                        B.xy[x,]
-        )
+                        pathmin,
+                        B.xy[x,]       
+       )
+        } else {
+        coords <- rbind(A.xy, B.xy[x,])
+        }
         rownames(coords) <- NULL
         linesAtoB[[distAtoB.w[x]]] <<- res <- sp::Lines(list(sp::Line(list(
           coords
@@ -557,6 +566,9 @@ Pt2Pts.wo.obstacle <- function(dref.from, dref.to, dref.r,
 #' @param longlat Logical. if FALSE, Euclidean distance, if TRUE Great Circle
 #' distance. Defined from r.ref.
 #' @param tol numeric Tolerance to define distances between points to be null.
+#' @param igraph Logical. Wether to calculate all distances through igraph (TRUE)
+#' or use \code{\link{Pt2Pts.wo.obstacle}} to use igraph only when necessary.
+#' Using igraph maybe less precise but a little quicker. Default to FALSE.
 #'
 #' @return
 #' If keep.path is false, returns a matrix of distances with rows = "from"
@@ -580,7 +592,8 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
                           step.ang = 5, r.ref3D = FALSE,
                           filename = paste0(tempdir(), "/dref.r.RData"),
                           small.dist = TRUE, keep.path = FALSE,
-                          longlat = isLonLat(r.ref), tol = 1e-5) {
+                          longlat = isLonLat(r.ref), tol = 1e-5,
+                          igraph = FALSE) {
   if (missing(n.cores)) {
     cl <- snow::makeCluster(parallel::detectCores())
   } else {
@@ -597,7 +610,7 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
   }
 
   # data preparation
-  if (!inherits(from, "distref.data")) {
+  if (inherits(from, "distref.data")) {
     dref.from <- from
   } else {
     dref.from <- distref.data(from, r.ref, closest)
@@ -605,7 +618,7 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
   if (missing(to)) {
     dref.to <- dref.from
   } else {
-    if (!inherits(to, "distref.data")) {
+    if (inherits(to, "distref.data")) {
       dref.to <- to
     } else {
       dref.to <- distref.data(to, r.ref, closest)
@@ -625,153 +638,156 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
   }
 
   ## All as igraph -------------------------------------------------------------
-  adj.ref.graph <- dref.r$adj.ref.graph
-  path.w <- dref.r$path.w
-  equal.from.to <- FALSE
-  if (nrow(dref.from$data) == nrow(dref.to$data)) {
-    if (sum(dref.from$data != dref.to$data) == 0) {equal.from.to <- TRUE}
-  } else {
-    # Verify if "from" have common coords with "to"
-    from.To.to <- sp::spDists(x = as.matrix(dref.from$data),
-                              y = as.matrix(dref.to$data),
-                              longlat = isLonLat(r.ref))
-    from.to.eq <- apply(from.To.to, 1, function(x) {which(x <= tol)})
-    if (!is.list(from.to.eq)) {from.to.eq <- as.list(from.to.eq)}
-    rm(from.To.to)
-  }
-  # Remove duplicates + message
-
-  add.v <- 0
-  adj.v.new <- add.coords <- NULL
-  n.edge.r <- length(V(adj.ref.graph)[[]])
-  for (i in c("from", "to")) {
-    if (i == "from" | !equal.from.to) {
-      fromto <- get(paste0("dref.", i))
-      N.to.test <- 1:length(fromto$data.pt.N)
-      fromto$vertices <- fromto$data.pt.N
-      if (i == "to" & sum(lengths(from.to.eq)) != 0) {
-        # Do not recalculate those in common with from
-        tmp <- lapply(which(lengths(from.to.eq) != 0), function(x) {
-          fromto$vertices[x] <<- rep(dref.from$vertices[x], length(x))
-        })
-        rm(tmp)
-        N.to.test <- N.to.test[-which(lengths(from.to.eq) != 0)]
-      }
-      if (length(N.to.test) != 0) {
-        # Do not recalculate if points are the same than r.ref positions
-        fromto.To.r <- apply(t(N.to.test), 2, function(x) {
-          sp::spDistsN1(pts = as.matrix(fromto$data[x,]),
-                      pt = coordinates(r.ref)[fromto$data.pt.N[x],],
-                      longlat = isLonLat(r.ref))
-        })
-        w.diff <- N.to.test[which(fromto.To.r >= tol)]
-        if (length(w.diff) != 0) {
-          # Add new points in the graph if not exists
-          fromto$vertices[w.diff] <- (n.edge.r + 1):(n.edge.r + length(w.diff))
-          add.v <- add.v + length(w.diff)
-          n.edge.r <- n.edge.r + length(w.diff)
-          add.coords.tmp <- fromto$data[w.diff,]
-          if (is.null(add.coords)) {
-            add.coords <- add.coords.tmp
-          } else {
-            add.coords <- rbind(add.coords, add.coords.tmp)
-          }
-          rm(add.coords.tmp)
-          # Define new edges based on r.ref edges
-          adj.v <- adjacent_vertices(adj.ref.graph,
-                                     v = fromto$data.pt.N[w.diff],
-                                     mode = "all")
-          adj.v.new.tmp <- as.data.frame(lapply(1:length(w.diff), function(x) {
-            rbind(w.diff[x], fromto$vertices[w.diff[x]], adj.v[[x]])
-          }))
-          if (is.null(adj.v.new)) {
-            adj.v.new <- adj.v.new.tmp
-          } else {
-            adj.v.new <- cbind(adj.v.new, adj.v.new.tmp)
-          }
-          rm(adj.v.new.tmp)
-        }
-      }
-      assign(paste0("dref.", i), fromto)
+  if (igraph) {
+    adj.ref.graph <- dref.r$adj.ref.graph
+    path.w <- dref.r$path.w
+    equal.from.to <- FALSE
+    if (nrow(dref.from$data) == nrow(dref.to$data)) {
+      if (sum(dref.from$data != dref.to$data) == 0) {equal.from.to <- TRUE}
     } else {
-      dref.to$vertices <- dref.from$vertices
+      # Verify if "from" have common coords with "to"
+      from.To.to <- sp::spDists(x = as.matrix(dref.from$data),
+                                y = as.matrix(dref.to$data),
+                                longlat = isLonLat(r.ref))
+      from.to.eq <- apply(from.To.to, 1, function(x) {which(x <= tol)})
+      if (!is.list(from.to.eq)) {from.to.eq <- as.list(from.to.eq)}
+      rm(from.To.to)
     }
-  }
-  if (add.v != 0) {
-    # Add vertices to the graph
-    adj.ref.graph <- adj.ref.graph %>%
-      add_vertices(add.v)
-    # Add edges to graph
-    adj.ref.graph <- adj.ref.graph %>%
-      add_edges(unlist(adj.v.new[2:3,], use.names = FALSE))
-    # Add distances to dists
-    if (!r.ref3D) {
-      path.w <- c(path.w, raster::pointDistance(
-        p1 = as.matrix(fromto$data[unlist(adj.v.new[1,]),]),
-        p2 = coordinates(r.ref)[unlist(adj.v.new[3,]),],
-        lonlat = isLonLat(r.ref)))
+    # Remove duplicates + message
+
+    add.v <- 0
+    adj.v.new <- add.coords <- NULL
+    n.edge.r <- length(igraph::V(adj.ref.graph)[[]])
+    for (i in c("from", "to")) {
+      if (i == "from" | !equal.from.to) {
+        fromto <- get(paste0("dref.", i))
+        N.to.test <- 1:length(fromto$data.pt.N)
+        fromto$vertices <- fromto$data.pt.N
+        if (i == "to" & sum(lengths(from.to.eq)) != 0) {
+          # Do not recalculate those in common with from
+          tmp <- lapply(which(lengths(from.to.eq) != 0), function(x) {
+            fromto$vertices[x] <<- rep(dref.from$vertices[x], length(x))
+          })
+          rm(tmp)
+          N.to.test <- N.to.test[-which(lengths(from.to.eq) != 0)]
+        }
+        if (length(N.to.test) != 0) {
+          # Do not recalculate if points are the same than r.ref positions
+          fromto.To.r <- apply(t(N.to.test), 2, function(x) {
+            sp::spDistsN1(pts = as.matrix(fromto$data[x,]),
+                        pt = coordinates(r.ref)[fromto$data.pt.N[x],],
+                        longlat = isLonLat(r.ref))
+          })
+          w.diff <- N.to.test[which(fromto.To.r >= tol)]
+          if (length(w.diff) != 0) {
+            # Add new points in the graph if not exists
+            fromto$vertices[w.diff] <- (n.edge.r + 1):(n.edge.r + length(w.diff))
+            add.v <- add.v + length(w.diff)
+            n.edge.r <- n.edge.r + length(w.diff)
+            add.coords.tmp <- fromto$data[w.diff,]
+            if (is.null(add.coords)) {
+              add.coords <- add.coords.tmp
+            } else {
+              add.coords <- rbind(add.coords, add.coords.tmp)
+            }
+            rm(add.coords.tmp)
+            # Define new edges based on r.ref edges
+            adj.v <- igraph::adjacent_vertices(adj.ref.graph,
+                                       v = fromto$data.pt.N[w.diff],
+                                       mode = "all")
+            adj.v.new.tmp <- as.data.frame(lapply(1:length(w.diff), function(x) {
+              rbind(w.diff[x], fromto$vertices[w.diff[x]], adj.v[[x]])
+            }))
+            if (is.null(adj.v.new)) {
+              adj.v.new <- adj.v.new.tmp
+            } else {
+              adj.v.new <- cbind(adj.v.new, adj.v.new.tmp)
+            }
+            rm(adj.v.new.tmp)
+          }
+        }
+        assign(paste0("dref.", i), fromto)
+      } else {
+        dref.to$vertices <- dref.from$vertices
+      }
     }
-  }
+    if (add.v != 0) {
+      # Add vertices to the graph
+      adj.ref.graph <- adj.ref.graph %>%
+        igraph::add_vertices(add.v)
+      # Add edges to graph
+      adj.ref.graph <- adj.ref.graph %>%
+        igraph::add_edges(unlist(adj.v.new[2:3,], use.names = FALSE))
+      # Add distances to dists
+      if (!r.ref3D) {
+        path.w <- c(path.w, raster::pointDistance(
+          p1 = as.matrix(fromto$data[unlist(adj.v.new[1,]),]),
+          p2 = coordinates(r.ref)[unlist(adj.v.new[3,]),],
+          lonlat = isLonLat(r.ref)))
+      }
+    }
 
-  if (keep.path) {
-    shpath <- igraph::all_shortest_paths(
-      adj.ref.graph,
-      from = dref.from$vertices, to = dref.to$vertices,
-      weights = path.w, mode = "all")
-    ## Verify that all paths from all "from" to all "to"
-    # Add duplicates here in all.path
-    all.path <- 1:length(shpath$vpath)
+    if (keep.path) {
+      shpath <- igraph::all_shortest_paths(
+        adj.ref.graph,
+        from = dref.from$vertices, to = dref.to$vertices,
+        weights = path.w, mode = "all")
+      ## Verify that all paths from all "from" to all "to"
+      # Add duplicates here in all.path
+      if (is.null(shpath$vpath)) {shpath$vpath <- shpath$res}
+      all.path <- 1:length(shpath$vpath)
 
-    allLines <- lapply(all.path, function(x) {
-      sp::Lines(list(sp::Line(list(
-        sp::rbind(coordinates(r.ref), add.coords)[shpath$vpath[[x]],]
-      ))), all.path)
-    })
+      allLines <- lapply(all.path, function(x) {
+        sp::Lines(list(sp::Line(list(
+          rbind(coordinates(r.ref), add.coords)[shpath$vpath[[x]],]
+        ))), x)
+      })
 
-    AtoB <- sp::SpatialLines(allLines)
-    distAtoB.tmp <- sp::SpatialLinesLengths(AtoB, longlat = longlat)
-
-  } else {
-    dist.mat <- igraph::distances(
-      adj.ref.graph,
-      v = dref.from$vertices, to = dref.to$vertices,
-      weights = path.w, mode = "all")
-  }
-
+      AtoB <- sp::SpatialLines(allLines)
+      raster::projection(AtoB) <- raster::projection(r.ref)
+      # distAtoB.tmp <- sp::SpatialLinesLengths(AtoB, longlat = longlat)
+    } else {
+      dist.mat <- igraph::distances(
+        adj.ref.graph,
+        v = dref.from$vertices, to = dref.to$vertices,
+        weights = path.w, mode = "all")
+    }
   ## End all as igraph ---------------------------------------------------------
-  if (length(dref.from$data.pt.N) == 1) {
-    res <- Pt2Pts.wo.obstacle(
-      dref.from, dref.to, dref.r, r.ref,
-      longlat = isLonLat(r.ref), small.dist = small.dist,
-      keep.path = keep.path)
-    if (keep.path) {allLines <- res$Lines}
-    dist.mat <- res$dist
-    rm(res)
   } else {
-    # stop if NA in data.pt.N because no closest
-    # Reduce calculations if from = to: Symetric matrix
-    if (keep.path) {allLines <- list()}
-	  dist.mat <- snow::parApply(cl, t(1:length(dref.from$data.pt.N)), 2, function(
-	    i,
-	    dref.from, dref.to, dref.r, r.ref,
-	    longlat, small.dist, keep.path)
-	    {
-	    dref.from <- list(data.pt.N = dref.from$data.pt.N[i],
-	                      data = t(dref.from$data[i,]))
-	    class(dref.from) <- "distref.data"
-	    res <- GeoDist::Pt2Pts.wo.obstacle(
+    if (length(dref.from$data.pt.N) == 1) {
+      res <- Pt2Pts.wo.obstacle(
+        dref.from, dref.to, dref.r, r.ref,
+        longlat = isLonLat(r.ref), small.dist = small.dist,
+        keep.path = keep.path)
+      if (keep.path) {allLines <- res$Lines}
+      dist.mat <- res$dist
+      rm(res)
+    } else {
+      # stop if NA in data.pt.N because no closest
+      # Reduce calculations if from = to: Symetric matrix
+      if (keep.path) {allLines <- list()}
+	    dist.mat <- snow::parApply(cl, t(1:length(dref.from$data.pt.N)), 2, function(
+	      i,
 	      dref.from, dref.to, dref.r, r.ref,
-	      longlat = raster::isLonLat(r.ref), small.dist = small.dist,
-	      keep.path = keep.path)
-	    if (keep.path) {
-	      allLines[[i]] <<- res$Lines
-	    }
-	    return(res$dist)
-	  }, dref.from = dref.from, dref.to = dref.to,
-	  dref.r = dref.r, r.ref = r.ref,
-	  longlat = longlat, small.dist = small.dist,
-	  keep.path = keep.path)
-	snow::stopCluster(cl);gc()
+	      longlat, small.dist, keep.path)
+	      {
+	      dref.from <- list(data.pt.N = dref.from$data.pt.N[i],
+	                        data = t(dref.from$data[i,]))
+	      class(dref.from) <- "distref.data"
+	      res <- Pt2Pts.wo.obstacle(
+	        dref.from, dref.to, dref.r, r.ref,
+	        longlat = raster::isLonLat(r.ref), small.dist = small.dist,
+	        keep.path = keep.path)
+	      if (keep.path) {
+	        allLines[[i]] <<- res$Lines
+	      }
+	      return(res$dist)
+	    }, dref.from = dref.from, dref.to = dref.to,
+	    dref.r = dref.r, r.ref = r.ref,
+	    longlat = longlat, small.dist = small.dist,
+	    keep.path = keep.path)
+	  snow::stopCluster(cl);gc()
+    }
   }
   if (keep.path) {
     return(list(dist.mat = dist.mat, listLines = allLines))

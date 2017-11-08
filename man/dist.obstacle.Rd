@@ -7,7 +7,7 @@
 dist.obstacle(from, to, r.ref, dref.r, n.cores, closest = FALSE,
   step.ang = 5, r.ref3D = FALSE, filename = paste0(tempdir(),
   "/dref.r.RData"), small.dist = TRUE, keep.path = FALSE,
-  longlat = isLonLat(r.ref), tol = 1e-05)
+  longlat = isLonLat(r.ref), tol = 1e-05, igraph = FALSE)
 }
 \arguments{
 \item{from}{Point data set from which to calculate distances. May be a 2-col
@@ -51,6 +51,10 @@ This allows real distances when 2 points are in the same raster cell or close.}
 distance. Defined from r.ref.}
 
 \item{tol}{numeric Tolerance to define distances between points to be null.}
+
+\item{igraph}{Logical. Wether to calculate all distances through igraph (TRUE)
+or use \code{\link{Pt2Pts.wo.obstacle}} to use igraph only when necessary.
+Using igraph maybe less precise but a little quicker. Default to FALSE.}
 }
 \value{
 If keep.path is false, returns a matrix of distances with rows = "from"
