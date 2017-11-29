@@ -7,7 +7,7 @@
 dist.obstacle(from, to, r.ref, dref.r, n.cores, closest = FALSE,
   step.ang = 5, r.ref3D = FALSE, filename = paste0(tempdir(),
   "/dref.r.RData"), small.dist = TRUE, keep.path = FALSE,
-  longlat = isLonLat(r.ref), tol = 1e-05, igraph = FALSE)
+  longlat = raster::isLonLat(r.ref), tol = 1e-05, igraph = FALSE)
 }
 \arguments{
 \item{from}{Point data set from which to calculate distances. May be a 2-col

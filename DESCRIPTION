@@ -5,27 +5,29 @@ Version: 0.1.0.8000
 Author: Sébastien Rochette
 Maintainer: Sébastien Rochette <sebastienrochettefr@gmail.com>
 Description: This package allows the calculation of distances that are
-    contrained by frontiers, islands, mountains, ... These distances are then
+    constrained by frontiers, islands, mountains, ... These distances are then
     implemented in classical geotools like kriging with a modified version of geoR
     functions.
 Depends: R (>= 3.0), geoR
-License: GPL
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Imports:
+Imports: 
     dplyr,
-    raster,    
+    gstat,
     igraph,
     magrittr,
     methods,
     parallel,
+    raster,
+    readr,
     rgdal,
+    rlang,
     snow,
     sp
 Suggests:
     knitr,
     rmarkdown,
     testthat,
-    tcltk,
-VignetteBuilder: knitr
+    tcltk
 RoxygenNote: 6.0.1

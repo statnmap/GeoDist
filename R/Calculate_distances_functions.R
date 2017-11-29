@@ -38,10 +38,6 @@ setClass("distref.data",
 
 #' Transfrom reference raster as a network of paths for distance calculation
 #'
-#' @import sp
-#' @import rgdal
-#' @import raster
-#' @import snow
 #' @param r.ref Raster (1-layer) that will be used to calculate distances. Its resolution
 #' impacts precision on distances.
 #' @param step.ang Step for angles classes breaks (in degrees). This means that
@@ -67,6 +63,8 @@ setClass("distref.data",
 #' All paths real distances are also stored to be weights for future points to
 #' points distances calculations.
 #'
+#' @importFrom magrittr '%>%'
+#'
 #' @return
 #' coords.r coordinates of all cells of the raster
 #' r.ref.NA.nb cell that are NA in the reference raster (obstacles)
@@ -88,15 +86,15 @@ distref.raster <- function(r.ref, step.ang = 5,
                  " % of distances calculated."
           ))
 
-  if (nlayers(r.ref) != 1) {
-    r.ref <- raster(r.ref, 1)
+  if (raster::nlayers(r.ref) != 1) {
+    r.ref <- raster::raster(r.ref, 1)
     message("Only the first layer of the raster is used as reference.")
   }
 
-  if (!fromDisk(r.ref)) {
-    writeRaster(r.ref, filename = paste0(tempdir(), "/r.ref.grd"),
+  if (!raster::fromDisk(r.ref)) {
+    raster::writeRaster(r.ref, filename = paste0(tempdir(), "/r.ref.grd"),
                 overwrite = TRUE)
-    r.ref <- raster(paste0(tempdir(), "/r.ref.grd"))
+    r.ref <- raster::raster(paste0(tempdir(), "/r.ref.grd"))
     message(paste("r.ref has been stored in temporary directory:",
                   paste0(tempdir(), "/r.ref.grd")))
   }
@@ -107,21 +105,22 @@ distref.raster <- function(r.ref, step.ang = 5,
     cl <- snow::makeCluster(n.cores)
   }
 
-  longlat <- isLonLat(r.ref)
-	coords.r <- coordinates(r.ref)
+  longlat <- raster::isLonLat(r.ref)
+	coords.r <- sp::coordinates(r.ref)
 
 	# Separate NA values in the reference raster (obstacles)
-	r.ref.N <- c(1:ncell(r.ref))
-  r.ref.NA.nb <- which(is.na(values(r.ref)))
-	if (length(r.ref.NA.nb) != 0) {r.ref.N <- c(1:ncell(r.ref))[-r.ref.NA.nb]}
+	r.ref.N <- c(1:raster::ncell(r.ref))
+  r.ref.NA.nb <- which(is.na(raster::values(r.ref)))
+	if (length(r.ref.NA.nb) != 0) {r.ref.N <- c(1:raster::ncell(r.ref))[-r.ref.NA.nb]}
 
 	# Determine which cells will be retained for ngb of interest ==== ------------
 	# = define the focal rectangle for distance calculations
 	# Find all cells that have a different angle with x-axis
 	# Define a step of angle that do not change distance a lot
 	# Choose the central cell as origin
-	pt.ref.nb <- cellFromRowCol(r.ref, row = round(nrow(r.ref) / 2),
-	                            col = round(ncol(r.ref) / 2))
+	pt.ref.nb <- raster::cellFromRowCol(
+	  r.ref, row = round(nrow(r.ref) / 2),
+	  col = round(ncol(r.ref) / 2))
 	pt.ref <- coords.r[pt.ref.nb,]
 	# angle between point and ref point
 	angles <- atan2(y = (coords.r[,2] - pt.ref[2]),
@@ -138,7 +137,7 @@ distref.raster <- function(r.ref, step.ang = 5,
 	# fisrt angle is in the same class than last angle as -180=180
 	ang.cut <- as.numeric(as.character(ang.cut))
 	# distances between point and ref point
-	distances <- values(distanceFromPoints(r.ref, pt.ref))
+	distances <- raster::values(raster::distanceFromPoints(r.ref, pt.ref))
 	distances[distances == 0] <- NA
 
 	# Find the smallest grid around the pixels including the points of interest
@@ -155,14 +154,14 @@ distref.raster <- function(r.ref, step.ang = 5,
 
 	# Build a little raster around the reference point
 	# It will be used as moving window around each cell in future calculations
-	block.r <- raster(
+	block.r <- raster::raster(
 	  raster::getValuesBlock(r.ref,
 	                 row = min(cell.Relpos.ngb[,1] + RowCol.center[1]),
 	                 nrows = 2*max(abs(cell.Relpos.ngb[,1])) + 1,
 	                 col = min(cell.Relpos.ngb[,2] + RowCol.center[2]),
 	                 ncols = 2*max(abs(cell.Relpos.ngb[,2])) + 1,
 	                 format = 'matrix'))
-	extent(block.r) <- c(0.5, ncol(block.r) + 0.5, 0.5, nrow(block.r) + 0.5)
+	raster::extent(block.r) <- c(0.5, ncol(block.r) + 0.5, 0.5, nrow(block.r) + 0.5)
 	# center of the grid
 	block.w.center <- c(max(abs(cell.Relpos.ngb[,1])) + 1,
 	                    max(abs(cell.Relpos.ngb[,2])) + 1)
@@ -175,16 +174,16 @@ distref.raster <- function(r.ref, step.ang = 5,
 	                        colnr = cell.Relpos.ngb[,2] + block.w.center[2])
 	# Create lines
 	L.i <- lapply(ngb.i, function(x) {
-	  Lines(list(Line(list(rbind(coordinates(block.r)[block.w.center.nb,],
-	                             coordinates(block.r)[x,])))), x)})
-	ABline <- SpatialLines(L.i)
+	  sp::Lines(list(sp::Line(list(rbind(sp::coordinates(block.r)[block.w.center.nb,],
+	                             sp::coordinates(block.r)[x,])))), x)})
+	ABline <- sp::SpatialLines(L.i)
 
 	# Find cells crossed by Lines
-	cellLines <- cellFromLine(block.r, ABline)
+	cellLines <- raster::cellFromLine(block.r, ABline)
 
 	# row and column number of cells except original one (block.w.center.nb)
 	RowCol.cells.i <- lapply(cellLines, function(x) {
-	  rowColFromCell(block.r, x[-which(x == block.w.center.nb)])
+	  raster::rowColFromCell(block.r, x[-which(x == block.w.center.nb)])
 	  })
 
 	# Standardize by cell positions relative to the focal cell
@@ -219,17 +218,18 @@ distref.raster <- function(r.ref, step.ang = 5,
 	adj.ref.graph <- igraph::graph.edgelist(adj.ref.unique, directed = FALSE)
 
 	# Add vertices to the graph
-	if (vcount(adj.ref.graph) <= ncell(r.ref)) {
+	if (igraph::vcount(adj.ref.graph) <= raster::ncell(r.ref)) {
 	  adj.ref.graph <- adj.ref.graph %>%
-  	  add_vertices(ncell(r.ref) - vcount(adj.ref.graph))
+  	  igraph::add_vertices(raster::ncell(r.ref) - igraph::vcount(adj.ref.graph))
 	}
 
 	# Distance of each path to weight future routes
 	if (!r.ref3D) {
 	path.w <-
-	  pointDistance(coordinates(r.ref)[adj.ref.unique[,1],],
-	                coordinates(r.ref)[adj.ref.unique[,2],],
-	                longlat = longlat)
+	  raster::pointDistance(
+	    sp::coordinates(r.ref)[adj.ref.unique[,1],],
+	    sp::coordinates(r.ref)[adj.ref.unique[,2],],
+	    longlat = longlat)
 	} else {
 	 # use gam to smooth ngb focal window with 3d data
 	  # divide each path from center cell to ngb into 1/2 raster res
@@ -250,7 +250,7 @@ distref.raster <- function(r.ref, step.ang = 5,
                                      weights = path.w,
                                      mode = "all")
     dists.tbl <- dplyr::as.tbl(as.data.frame(r.ref.dists))
-    if (extension(save.rdists) != ".csv") {
+    if (raster::extension(save.rdists) != ".csv") {
       save.rdists <- paste0(save.rdists, ".csv")
     }
     readr::write_excel_csv(dists.tbl, save.rdists)
@@ -277,30 +277,31 @@ distref.raster <- function(r.ref, step.ang = 5,
 #'
 #' @export
 
-distref.data <- function(data.pt, r.ref, closest = FALSE, longlat = isLonLat(r.ref))
+distref.data <- function(data.pt, r.ref, closest = FALSE,
+                         longlat = raster::isLonLat(r.ref))
 {
 
-  data.pt.N <- extract(r.ref, data.pt, cellnumbers = TRUE)[,"cells"]
+  data.pt.N <- raster::extract(r.ref, data.pt, cellnumbers = TRUE)[,"cells"]
 
-  if (sum(is.na(values(r.ref)[data.pt.N])) > 0) {
-    data.pt.N[which(is.na(values(r.ref)[data.pt.N]))] <- NA
+  if (sum(is.na(raster::values(r.ref)[data.pt.N])) > 0) {
+    data.pt.N[which(is.na(raster::values(r.ref)[data.pt.N]))] <- NA
   }
   NA.pos <- which(is.na(data.pt.N))
 	# For those that are NA (on obstacles due to r.ref resolution)
 	# Find closest non-NA cell
   if (closest & sum(is.na(data.pt.N)) > 0) {
     if (length(NA.pos) != 1) {
-      data.ptNA <- coordinates(data.pt)[NA.pos,]
+      data.ptNA <- sp::coordinates(data.pt)[NA.pos,]
     } else {
-      data.ptNA <- t(coordinates(data.pt)[NA.pos,])
+      data.ptNA <- t(sp::coordinates(data.pt)[NA.pos,])
     }
     tabDist <-
-      spDists(data.ptNA,
-              coordinates(r.ref)[!is.na(values(r.ref)),],
+      sp::spDists(data.ptNA,
+              sp::coordinates(r.ref)[!is.na(raster::values(r.ref)),],
               longlat = longlat)
     w.close <- apply(tabDist, 1, which.min)
     NA.dist <- apply(t(1:nrow(tabDist)), 2, function(x) tabDist[x, w.close[x]])
-    data.pt.N[NA.pos] <- which(!is.na(values(r.ref)))[w.close]
+    data.pt.N[NA.pos] <- which(!is.na(raster::values(r.ref)))[w.close]
 
     ## IF 3D, add message that distance is in 2D
   }
@@ -373,11 +374,6 @@ Find.ngb.wo.obstacle <- function(i, r.ref, coords.r,
 
 #' Calculate distance from one point to a set of points using adjacency matrix
 #'
-#' @import rgdal
-#' @import sp
-#' @import raster
-#' @import igraph
-#'
 #' @param dref.from object of class distref.data for a single point
 #' @param dref.to object of class distref.data
 #' @param dref.r object of class distref.raster corresponding to r.ref
@@ -407,8 +403,8 @@ Pt2Pts.wo.obstacle <- function(dref.from, dref.to, dref.r,
   linesAtoB <- list()
   A <- dref.from$data.pt.N
   B <- dref.to$data.pt.N
-  A.xy <- from.xy <- coordinates(dref.from$data)
-  B.xy <- to.xy <- coordinates(dref.to$data)
+  A.xy <- from.xy <- sp::coordinates(dref.from$data)
+  B.xy <- to.xy <- sp::coordinates(dref.to$data)
   adj.ref.graph <- dref.r$adj.ref.graph
   path.w <- dref.r$path.w
 
@@ -485,14 +481,14 @@ Pt2Pts.wo.obstacle <- function(dref.from, dref.to, dref.r,
     if (length(all.path) != 0) {
       allLines <- lapply(all.path, function(x) {
       # Remove first and last path r.ref point to replace by location
-        pathmin <- sp::coordinates(r.ref)[head(shpath$vpath[[x]][-1],-1),]
+        pathmin <- sp::coordinates(r.ref)[utils::head(shpath$vpath[[x]][-1],-1),]
         if (is.null(nrow(pathmin))) {
           pathmin <- data.frame(x = pathmin[1], y = pathmin[2])
         }
         if (nrow(pathmin) != 0) {
         coords <- rbind(A.xy,
                         pathmin,
-                        B.xy[x,]       
+                        B.xy[x,]
        )
         } else {
         coords <- rbind(A.xy, B.xy[x,])
@@ -523,7 +519,7 @@ Pt2Pts.wo.obstacle <- function(dref.from, dref.to, dref.r,
         data = data.frame(ID = 1:length(distAtoB)[-distAtoB.w[path.out.0]]),
         match.ID = FALSE)
     }
-    projection(LinesAB) <- projection(r.ref)
+    raster::projection(LinesAB) <- raster::projection(r.ref)
     # dist <- SpatialLinesLengths(LinesAB)
     if (!keep.path) {LinesAB <- NA}
     res <- list(Lines = LinesAB, dist = distAtoB)
@@ -570,6 +566,8 @@ Pt2Pts.wo.obstacle <- function(dref.from, dref.to, dref.r,
 #' or use \code{\link{Pt2Pts.wo.obstacle}} to use igraph only when necessary.
 #' Using igraph maybe less precise but a little quicker. Default to FALSE.
 #'
+#' @importFrom magrittr '%>%'
+#'
 #' @return
 #' If keep.path is false, returns a matrix of distances with rows = "from"
 #' and cols = "to".
@@ -592,7 +590,7 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
                           step.ang = 5, r.ref3D = FALSE,
                           filename = paste0(tempdir(), "/dref.r.RData"),
                           small.dist = TRUE, keep.path = FALSE,
-                          longlat = isLonLat(r.ref), tol = 1e-5,
+                          longlat = raster::isLonLat(r.ref), tol = 1e-5,
                           igraph = FALSE) {
   if (missing(n.cores)) {
     cl <- snow::makeCluster(parallel::detectCores())
@@ -648,7 +646,7 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
       # Verify if "from" have common coords with "to"
       from.To.to <- sp::spDists(x = as.matrix(dref.from$data),
                                 y = as.matrix(dref.to$data),
-                                longlat = isLonLat(r.ref))
+                                longlat = raster::isLonLat(r.ref))
       from.to.eq <- apply(from.To.to, 1, function(x) {which(x <= tol)})
       if (!is.list(from.to.eq)) {from.to.eq <- as.list(from.to.eq)}
       rm(from.To.to)
@@ -675,8 +673,8 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
           # Do not recalculate if points are the same than r.ref positions
           fromto.To.r <- apply(t(N.to.test), 2, function(x) {
             sp::spDistsN1(pts = as.matrix(fromto$data[x,]),
-                        pt = coordinates(r.ref)[fromto$data.pt.N[x],],
-                        longlat = isLonLat(r.ref))
+                        pt = sp::coordinates(r.ref)[fromto$data.pt.N[x],],
+                        longlat = raster::isLonLat(r.ref))
           })
           w.diff <- N.to.test[which(fromto.To.r >= tol)]
           if (length(w.diff) != 0) {
@@ -722,8 +720,8 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
       if (!r.ref3D) {
         path.w <- c(path.w, raster::pointDistance(
           p1 = as.matrix(fromto$data[unlist(adj.v.new[1,]),]),
-          p2 = coordinates(r.ref)[unlist(adj.v.new[3,]),],
-          lonlat = isLonLat(r.ref)))
+          p2 = sp::coordinates(r.ref)[unlist(adj.v.new[3,]),],
+          lonlat = raster::isLonLat(r.ref)))
       }
     }
 
@@ -739,7 +737,7 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
 
       allLines <- lapply(all.path, function(x) {
         sp::Lines(list(sp::Line(list(
-          rbind(coordinates(r.ref), add.coords)[shpath$vpath[[x]],]
+          rbind(sp::coordinates(r.ref), add.coords)[shpath$vpath[[x]],]
         ))), x)
       })
 
@@ -757,7 +755,8 @@ dist.obstacle <- function(from, to, r.ref, dref.r,
     if (length(dref.from$data.pt.N) == 1) {
       res <- Pt2Pts.wo.obstacle(
         dref.from, dref.to, dref.r, r.ref,
-        longlat = isLonLat(r.ref), small.dist = small.dist,
+        longlat = raster::isLonLat(r.ref),
+        small.dist = small.dist,
         keep.path = keep.path)
       if (keep.path) {allLines <- res$Lines}
       dist.mat <- res$dist

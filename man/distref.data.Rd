@@ -4,7 +4,8 @@
 \alias{distref.data}
 \title{Get characteristics of data regarding the reference raster}
 \usage{
-distref.data(data.pt, r.ref, closest = FALSE, longlat = isLonLat(r.ref))
+distref.data(data.pt, r.ref, closest = FALSE,
+  longlat = raster::isLonLat(r.ref))
 }
 \arguments{
 \item{data.pt}{Point data set. May be a 2-col matrix of (x,y) coordinates or a

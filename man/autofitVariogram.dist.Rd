@@ -7,7 +7,7 @@
 autofitVariogram.dist(formula, input_data, model = c("Sph", "Exp", "Gau",
   "Ste"), kappa = c(0.05, seq(0.2, 2, 0.1), 5, 10), fix.values = c(NA, NA,
   NA), verbose = FALSE, GLS.model = NA, start_vals = c(NA, NA, NA),
-  cutoff, miscFitOptions = list(), ...)
+  cutoff, miscFitOptions = list(), dist.mat = NULL, ...)
 }
 \arguments{
 \item{formula}{formula that defines the dependent variable as a linear model
@@ -52,9 +52,9 @@ Default to diagonal * 0.35.}
                           See also \code{merge.small.bins}.}
                     }}
 
-\item{...}{parameters that are passed on to \link[gstat]{variogram} when calculating the sample variogram.}
-
 \item{dist.mat}{Square matrix of distances between points of the dataset ## Not implemented yet}
+
+\item{...}{parameters that are passed on to \link[gstat]{variogram} when calculating the sample variogram.}
 }
 \description{
 Automatically fitting a variogram to the data on which it is applied. The automatic fitting is done through fit.variogram. In fit.variogram the user had to supply an initial estimate for the sill, range etc. autofitVariogram provides this estimate based on the data and then calls fit.variogram.

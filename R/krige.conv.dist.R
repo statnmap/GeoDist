@@ -5,8 +5,6 @@
 #' @param loc.dist is a n (data) x N (locations) matrix with distances between data points and prediction locations.
 #' @param loc.loc.dist is a N (locations) x N (locations) matrix with distances between prediction locations.
 #'
-#' @import geoR
-#'
 #' @export
 
 krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$data, locations,
@@ -193,7 +191,7 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
       if (beta.size != length(beta))
         stop("size of mean vector is incompatible with trend specified")
     if (class(krige$trend.l) == "trend.spatial")
-      trend.l <- unclass(krige$trend.l) else trend.l <- unclass(trend.spatial(trend = krige$trend.l, geodata = list(coords = locations)))
+      trend.l <- unclass(krige$trend.l) else trend.l <- unclass(geoR::trend.spatial(trend = krige$trend.l, geodata = list(coords = locations)))
     if (!is.null(borders))
       if (nrow(trend.l) == nloc0)
         trend.l <- trend.l[ind.loc0, , drop = FALSE]
@@ -234,7 +232,7 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
     kc <- list()
     #Vcov <- geoR::varcov.spatial(coords = coords, cov.model = cov.model, kappa = kappa, nugget = tausq.rel,
     #                             cov.pars = cpars)$varcov
-    Vcov <- geoR::varcov.spatial(dists.lowertri = as.vector(as.dist(dist.mat)),
+    Vcov <- geoR::varcov.spatial(dists.lowertri = as.vector(stats::as.dist(dist.mat)),
                                  cov.model = cov.model, kappa = kappa, nugget = tausq.rel,
                                  cov.pars = cpars)$varcov
     ivtt <- solve(Vcov, trend.d)
@@ -265,7 +263,7 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
     } else remove("locations")
     nug.factor <- ifelse(signal, tausq.rel.micro, tausq.rel)
     ind.v0 <- which(v0 < krige$dist.epsilon)
-    v0 <- cov.spatial(obj = v0, cov.model = cov.model, kappa = kappa, cov.pars = cpars)
+    v0 <- geoR::cov.spatial(obj = v0, cov.model = cov.model, kappa = kappa, cov.pars = cpars)
     v0[ind.v0] <- 1 + nug.factor
     ivv0 <- solve(Vcov, v0)
     tv0ivv0 <- colSums(v0 * ivv0)
@@ -299,7 +297,7 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
     if (n.predictive > 0) {
       if (!exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
         warning(".Random.seed not initialised. Creating it with runif(1)")
-        runif(1)
+        stats::runif(1)
       }
       seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
       if (messages.screen)
@@ -311,11 +309,11 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
         }
         # varcov <- (varcov.spatial(coords = locations, cov.model = cov.model, cov.pars = cov.pars,
         #                          kappa = kappa, nugget = nugget)$varcov) - tv0ivv0
-        varcov <- (varcov.spatial(dists.lowertri = as.vector(as.dist(dist.mat)),
+        varcov <- (geoR::varcov.spatial(dists.lowertri = as.vector(stats::as.dist(dist.mat)),
                                   cov.model = cov.model, cov.pars = cov.pars,
                                   kappa = kappa, nugget = nugget)$varcov) - tv0ivv0
         remove("tv0ivv0")
-        kc$simulations <- kc$predict + crossprod(chol(varcov), matrix(rnorm(ni * n.predictive),
+        kc$simulations <- kc$predict + crossprod(chol(varcov), matrix(stats::rnorm(ni * n.predictive),
                                                                       ncol = n.predictive))
       } else {
         coincide.cond <- ((isTRUE(all.equal(nugget, 0)) | !signal) & (!is.null(loc.coincide)))
@@ -337,10 +335,10 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
         if (nloc > 0) {
           # invcov <- varcov.spatial(coords = coords, cov.model = cov.model, kappa = kappa,
           #                          nugget = tausq.rel, cov.pars = cpars, inv = TRUE, only.inv.lower.diag = TRUE)
-          invcov <- varcov.spatial(dists.lowertri = as.vector(as.dist(dist.mat)),
+          invcov <- geoR::varcov.spatial(dists.lowertri = as.vector(stats::as.dist(dist.mat)),
                                    cov.model = cov.model, kappa = kappa,
                                    nugget = tausq.rel, cov.pars = cpars, inv = TRUE, only.inv.lower.diag = TRUE)
-          kc$simulations[ind.not.coincide, ] <- .cond.sim(env.loc = base.env, env.iter = base.env,
+          kc$simulations[ind.not.coincide, ] <- geoR:::.cond.sim(env.loc = base.env, env.iter = base.env,
                                                           loc.coincide = loc.coincide, coincide.cond = coincide.cond, tmean = kc$predict[ind.not.coincide],
                                                           Rinv = invcov, mod = list(beta.size = beta.size, nloc = nloc, Nsims = n.predictive,
                                                                                     n = n, Dval = Dval, df.model = df.model, s2 = sill.partial, cov.model.number = .cor.number(cov.model),
@@ -356,11 +354,11 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
           cat("krige.conv: back-transforming the simulated values\n")
         if (any(kc$simulations < -1/lambda))
           warning("Truncation in the back-transformation: there are simulated values less than (- 1/lambda) in the normal scale.")
-        kc$simulations <- BCtransform(x = kc$simulations, lambda = lambda, inverse = TRUE)$data
+        kc$simulations <- geoR::BCtransform(x = kc$simulations, lambda = lambda, inverse = TRUE)$data
       }
       if (!is.null(mean.estimator) | !is.null(quantile.estimator) | !is.null(probability.estimator) |
           !is.null(sim.means) | !is.null(sim.vars)) {
-        kc <- c(kc, statistics.predictive(simuls = kc$simulations, mean.var = mean.estimator,
+        kc <- c(kc, geoR::statistics.predictive(simuls = kc$simulations, mean.var = mean.estimator,
                                           quantile = quantile.estimator, threshold = probability.estimator, sim.means = sim.means,
                                           sim.vars = sim.vars))
       }
@@ -372,7 +370,7 @@ krige.conv.dist <- function(geodata, coords = geodata$coords, data = geodata$dat
         if (!isTRUE(all.equal(lambda, 0)) & !isTRUE(all.equal(lambda, 0.5)))
           cat("krige.conv: back-transforming by simulating from the predictive.\n           (run the function a few times and check stability of the results.\n")
       }
-      kc[c("predict", "krige.var")] <- backtransform.moments(lambda = lambda, mean = kc$predict,
+      kc[c("predict", "krige.var")] <- geoR::backtransform.moments(lambda = lambda, mean = kc$predict,
                                                              variance = kc$krige.var, distribution = "normal", n.simul = n.back.moments)[c("mean",
                                                                                                                                            "variance")]
     }

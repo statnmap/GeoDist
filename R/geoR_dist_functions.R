@@ -9,10 +9,13 @@
 #' @param nmax the number of nearest observations that should be used for a kriging prediction or simulation, where nearest is defined in terms of the space of the spatial locations. By default, all observations are used
 #' @param nmin if the number of nearest observations within distance maxdist is less than nmin, a missing value will be generated; see maxdist
 #' @param longlat Logical Wether coordinates are not-projected (TRUE) or are projected (FALSE).
-#' @param maxdist Maximum distance radius for neighbours search in the idw interpolation.
+#' @param max.dist Maximum distance radius for neighbours search in the idw interpolation.
 #' maxdist is in km when longlat is TRUE (non-projected crs), in meters otherwise.
 #' If loc.dist is specified, maxdist should be in same distance unit.
 #' @param idp specify the inverse distance weighting power. Default to 2.
+#'
+#' @importFrom methods is
+#'
 #' @export
 
 idw.dist <- function(data, coords, locations, loc.dist, idp = 2, max.dist,
@@ -24,8 +27,8 @@ idw.dist <- function(data, coords, locations, loc.dist, idp = 2, max.dist,
       locations <- coords
     }
     if (sum(grepl("SpatialPoints", is(locations))) >= 1) {
-      locations <- coordinates(locations)
-      proj4string(locations) <- proj4string(coords)
+      locations <- sp::coordinates(locations)
+      sp::proj4string(locations) <- sp::proj4string(coords)
     }
     # v0 <- geoR::loccoords(coords = coords, locations = locations)
     v0 <- sp::spDists(x = coords, y = locations, longlat = longlat)
@@ -80,9 +83,10 @@ idw.dist <- function(data, coords, locations, loc.dist, idp = 2, max.dist,
 #' @param loc.dist Matrix of distances between data (rows) and locations (cols)
 #' @param nmax the number of nearest observations that should be used for a kriging prediction or simulation, where nearest is defined in terms of the space of the spatial locations. By default, all observations are used
 #' @param nmin if the number of nearest observations within distance maxdist is less than nmin, a missing value will be generated; see maxdist
-#' @param maxdist Maximum distance radius for neighbours search in the idw interpolation.
+#' @param max.dist Maximum distance radius for neighbours search in the idw interpolation.
 #'
 #' @importFrom magrittr '%>%'
+#' @importFrom rlang .data
 #'
 #' @export
 
@@ -108,9 +112,9 @@ Prep_loc_dist <- function(loc.dist, nmin = 1, nmax, max.dist)
   # Get distances lines necessary according to nmax
   # and corrected by nmin
   loc.dist.nmax <- loc.dist.tbl %>%
-    dplyr::mutate_all(., function(x) sort(x, na.last = TRUE)) %>%
+    dplyr::mutate_all(.data, function(x) sort(x, na.last = TRUE)) %>%
     dplyr::slice(1:nmax) %>%
-    dplyr::mutate_all(., function(x) {
+    dplyr::mutate_all(.data, function(x) {
       if (sum(!is.na(x)) < nmin) {rep(NA, length(x))}else{x}})
 
   return(list(loc.dist.order = loc.dist.order, loc.dist.nmax = loc.dist.nmax))
@@ -204,7 +208,7 @@ variog.dist <- function(geodata, coords = geodata$coords, data = geodata$data, u
   data <- as.matrix(data)
   if (nrow(coords) != nrow(data))
     stop("coords and data have incompatible dimensions")
-  data.var <- apply(data, 2, var)
+  data.var <- apply(data, 2, stats::var)
   n.data <- nrow(coords)
   n.datasets <- ncol(data)
   data <- drop(data)
@@ -219,21 +223,21 @@ variog.dist <- function(geodata, coords = geodata$coords, data = geodata$data, u
     stop("coords and trend have incompatible sizes")
   if (trend != "cte") {
     if (is.vector(data)) {
-      temp.fit <- lm(data ~ xmat + 0)
+      temp.fit <- stats::lm(data ~ xmat + 0)
       beta.ols <- temp.fit$coeff
       data <- temp.fit$residuals
       temp.fit <- NULL
       names(data) <- NULL
     } else {
-      only.res <- function(y, x) lm(y ~ xmat + 0)$residuals
+      only.res <- function(y, x) stats::lm(y ~ xmat + 0)$residuals
       data <- apply(data, 2, only.res, x = xmat)
-      only.beta <- function(y, x) lm(y ~ xmat + 0)$coef
+      only.beta <- function(y, x) stats::lm(y ~ xmat + 0)$coef
       beta.ols <- apply(data, 2, only.beta, x = xmat)
     }
   } else beta.ols <- colMeans(as.matrix(data))
   ## Allow to add your own distance matrix
   if (missing(dist.mat)) {
-    u <- as.vector(dist(as.matrix(coords)))
+    u <- as.vector(stats::dist(as.matrix(coords)))
   } else {
     dist.vec <- dist.mat[which(col(dist.mat) < row(dist.mat))]
     u <- dist.vec
@@ -295,7 +299,7 @@ variog.dist <- function(geodata, coords = geodata$coords, data = geodata$data, u
     data <- as.matrix(data)
     v <- matrix(0, nrow = length(u), ncol = n.datasets)
     for (i in 1:n.datasets) {
-      v[, i] <- as.vector(dist(data[, i]))
+      v[, i] <- as.vector(stats::dist(data[, i]))
       if (estimator.type == "modulus")
         v[, i] <- v[, i, drop = FALSE]^(0.5) else v[, i] <- (v[, i, drop = FALSE]^2)/2
     }
@@ -496,7 +500,7 @@ likfit.dist <- function(geodata, coords = geodata$coords, data = geodata$data, t
   nrep <- temp.list$nrep <- length(levels(realisations))
   ind.rep <- split(1:n, realisations)
   vecdist <- function(x) {
-    as.vector(dist(x))
+    as.vector(stats::dist(x))
   }
   if (any(class(ini.cov.pars) == "eyefit")) {
     init <- nugget <- kappa <- NULL
@@ -709,8 +713,8 @@ likfit.dist <- function(geodata, coords = geodata$coords, data = geodata$data, t
     lik.minim <- list(par = lik.minim$minimum, value = lik.minim$objective, convergence = 0,
       message = "function optimize used")
   } else {
-    MET <- pmatch(names(ldots), names(formals(optim)))
-    if (is.na(MET) || all(names(formals(optim))[MET] != "method"))
+    MET <- pmatch(names(ldots), names(formals(stats::optim)))
+    if (is.na(MET) || all(names(formals(stats::optim))[MET] != "method"))
       ldots$method <- "L-BFGS-B"
     if (!is.null(names(ldots))) {
       names(ldots)[which(as.logical(pmatch(names(ldots), "method", nomatch = 0)))] <- "method"
@@ -897,7 +901,7 @@ likfit.dist <- function(geodata, coords = geodata$coords, data = geodata$data, t
     if (round(psiR, digits = 6) != 1 | round(psiA, digits = 6) != 0)
       coords <- coords.aniso(coords, aniso.pars = c(psiA, psiR))
     rangevecdist <- function(x) {
-      range(as.vector(dist(x)))
+      range(as.vector(stats::dist(x)))
     }
     ## HERE dist.mat ##
     if (missing(dist.mat)) {
@@ -988,9 +992,9 @@ likfit.dist <- function(geodata, coords = geodata$coords, data = geodata$data, t
       lambda.ns <- lambda
     } else {
       if (is.R())
-        lik.lambda.ns <- optim(par = 1, fn = geoR:::.negloglik.boxcox, method = "L-BFGS-B",
+        lik.lambda.ns <- stats::optim(par = 1, fn = geoR:::.negloglik.boxcox, method = "L-BFGS-B",
           lower = limits$lambda["lower"], upper = limits$lambda["upper"], data = data,
-          xmat = xmat, lik.method = method.lik) else lik.lambda.ns <- nlminb(par = 1, fn = geoR:::.negloglik.boxcox, lower = limits$lambda["lower"],
+          xmat = xmat, lik.method = method.lik) else lik.lambda.ns <- stats::nlminb(par = 1, fn = geoR:::.negloglik.boxcox, lower = limits$lambda["lower"],
         upper = limits$lambda["upper"], data = data, xmat = xmat, lik.method = method.lik)
       lambda.ns <- lik.lambda.ns$par
       if (abs(lambda) < 1e-04)
@@ -1061,10 +1065,12 @@ likfit.dist <- function(geodata, coords = geodata$coords, data = geodata$data, t
 
 #' Eyefit function of geoR with higher range for phi and sigma
 #'
-#' @import tcltk
 #' @inheritParams geoR::eyefit
 #' @param max.phi Numeric as multiplied by max(vario$u). Default to 2.
 #' @param max.sigma Numeric as multiplied by max(vario$v). Default to 2.
+#'
+#' @import tcltk
+#'
 #' @export
 
 eyefit.large <- function(vario, max.phi = 2, max.sigma = 2, silent = FALSE)
@@ -1092,47 +1098,47 @@ eyefit.large <- function(vario, max.phi = 2, max.sigma = 2, silent = FALSE)
         sigmasq <- as.numeric(tclObj(sill))
         phi <- as.numeric(tclObj(range))
         tausq <- as.numeric(tclObj(nugget))
-        eval(substitute(plot(vario)))
+        eval(substitute(graphics::plot(vario)))
         fit <- get("eyefit.tmp", envir = eyefit.env)
-        lapply(fit, function(x) lines.variomodel(seq(0, maxdist,
+        lapply(fit, function(x) geoR::lines.variomodel(seq(0, maxdist,
             l = 100), cov.model = x$cov.model, kappa = x$kappa,
             cov.pars = x$cov.pars, nug = x$nug, max.dist = x$max.dist))
         if (k == "gneiting.matern" | k == "gencauchy") {
-            lines.variomodel(x = seq(0, maxdist, l = 100), cov.model = k,
+            geoR::lines.variomodel(x = seq(0, maxdist, l = 100), cov.model = k,
                 kappa = c(kp1, kp2), cov.pars = c(sigmasq, phi),
                 nug = tausq, max.dist = maxdist)
         }
         else if (k == "powered.exponential" || k == "cauchy" ||
             k == "matern") {
-            lines.variomodel(x = seq(0, maxdist, l = 100), cov.model = k,
+            geoR::lines.variomodel(x = seq(0, maxdist, l = 100), cov.model = k,
                 kappa = kp1, cov.pars = c(sigmasq, phi), nug = tausq,
                 max.dist = maxdist)
         }
-        else lines.variomodel(x = seq(0, maxdist, l = 100), cov.model = k,
+        else geoR::lines.variomodel(x = seq(0, maxdist, l = 100), cov.model = k,
             cov.pars = c(sigmasq, phi), nug = tausq, max.dist = maxdist)
     }
     redraw <- function(...) {
         var <- as.character(tclObj(kernel))
         if (var == "gneiting.matern" | var == "gencauchy") {
-            tkconfigure(entry.kappa1, state = "normal")
-            tkconfigure(ts5, state = "normal")
-            tkfocus(entry.kappa1)
-            tkconfigure(entry.kappa2, state = "normal")
-            tkconfigure(ts6, state = "normal")
+          tkconfigure(entry.kappa1, state = "normal")
+          tkconfigure(ts5, state = "normal")
+          tkfocus(entry.kappa1)
+          tkconfigure(entry.kappa2, state = "normal")
+          tkconfigure(ts6, state = "normal")
         }
         else if (var == "powered.exponential" || var == "cauchy" ||
             var == "matern") {
-            tkconfigure(entry.kappa1, state = "normal")
-            tkconfigure(ts5, state = "normal")
-            tkfocus(entry.kappa1)
-            tkconfigure(entry.kappa2, state = "disabled")
-            tkconfigure(ts6, state = "disabled")
+          tkconfigure(entry.kappa1, state = "normal")
+          tkconfigure(ts5, state = "normal")
+          tkfocus(entry.kappa1)
+          tkconfigure(entry.kappa2, state = "disabled")
+          tkconfigure(ts6, state = "disabled")
         }
         else {
-            tkconfigure(ts5, state = "disabled")
-            tkconfigure(ts6, state = "disabled")
-            tkconfigure(entry.kappa1, state = "disabled")
-            tkconfigure(entry.kappa2, state = "disabled")
+          tkconfigure(ts5, state = "disabled")
+          tkconfigure(ts6, state = "disabled")
+          tkconfigure(entry.kappa1, state = "disabled")
+          tkconfigure(entry.kappa2, state = "disabled")
         }
         replot()
     }
@@ -1215,7 +1221,7 @@ eyefit.large <- function(vario, max.phi = 2, max.sigma = 2, silent = FALSE)
     }
     OnClear <- function(aux = vario) {
         assign("eyefit.tmp", list(), envir = eyefit.env)
-        plot(aux)
+        graphics::plot(aux)
     }
     OnSave <- function() {
         k <- as.character(tclObj(kernel))
@@ -1276,35 +1282,36 @@ eyefit.large <- function(vario, max.phi = 2, max.sigma = 2, silent = FALSE)
 #' @param cutoff Parameter included in variogram (maximum distance of variogram).
 #' Default to diagonal * 0.35.
 #' @param dist.mat Square matrix of distances between points of the dataset ## Not implemented yet
+#'
 #' @export
 
 autofitVariogram.dist <- function(formula, input_data, model = c("Sph", "Exp", "Gau",
     "Ste"), kappa = c(0.05, seq(0.2, 2, 0.1), 5, 10), fix.values = c(NA,
     NA, NA), verbose = FALSE, GLS.model = NA, start_vals = c(NA,
-    NA, NA), cutoff, miscFitOptions = list(), ...)
+    NA, NA), cutoff, miscFitOptions = list(), dist.mat = NULL, ...)
 {
     if ("alpha" %in% names(list(...)))
         warning("Anisotropic variogram model fitting not supported, see the documentation of autofitVariogram for more details.")
     miscFitOptionsDefaults = list(merge.small.bins = TRUE, min.np.bin = 5)
-    miscFitOptions = modifyList(miscFitOptionsDefaults, miscFitOptions)
-    longlat = !is.projected(input_data)
+    miscFitOptions = utils::modifyList(miscFitOptionsDefaults, miscFitOptions)
+    longlat = !sp::is.projected(input_data)
     if (is.na(longlat)) { longlat = FALSE }
-      diagonal = spDists(t(bbox(input_data)), longlat = longlat)[1, 2]
+      diagonal = sp::spDists(t(sp::bbox(input_data)), longlat = longlat)[1, 2]
       # Add possibility to define cutoff (maximum distance of variogram)
       if (missing(cutoff)) {cutoff <- diagonal * 0.35}
       boundaries = c(2, 4, 6, 9, 12, 15, 25, 35, 50, 65, 80, 100) *
         # diagonal * 0.35/100 # Change to cutoff
         cutoff/100
     if (!is(GLS.model, "variogramModel")) {
-        experimental_variogram = variogram(formula, input_data,
+        experimental_variogram = gstat::variogram(formula, input_data,
             cutoff = cutoff, boundaries = boundaries, ...) # Added cutoff
     }
     else {
         if (verbose)
             cat("Calculating GLS sample variogram\n")
-        g = gstat(NULL, "bla", formula, input_data, model = GLS.model,
+        g = gstat::gstat(NULL, "bla", formula, input_data, model = GLS.model,
             set = list(gls = 1))
-        experimental_variogram = variogram(g, cutoff = cutoff, # Added cutoff
+        experimental_variogram = gstat::variogram(g, cutoff = cutoff, # Added cutoff
             boundaries = boundaries,
             ...)
     }
@@ -1318,11 +1325,11 @@ autofitVariogram.dist <- function(formula, input_data, model = c("Sph", "Exp", "
                 break
             boundaries = boundaries[2:length(boundaries)]
             if (!is(GLS.model, "variogramModel")) {
-                experimental_variogram = variogram(formula, input_data,
+                experimental_variogram = gstat::variogram(formula, input_data,
                   cutoff = cutoff, boundaries = boundaries, ...) # Added cutoff
             }
             else {
-                experimental_variogram = variogram(g, cutoff = cutoff, # Added cutoff
+                experimental_variogram = gstat::variogram(g, cutoff = cutoff, # Added cutoff
                   boundaries = boundaries,
                   ...)
             }
@@ -1342,7 +1349,7 @@ autofitVariogram.dist <- function(formula, input_data, model = c("Sph", "Exp", "
     }
     if (is.na(start_vals[3])) {
         initial_sill = mean(c(max(experimental_variogram$gamma),
-            median(experimental_variogram$gamma)))
+            stats::median(experimental_variogram$gamma)))
     }
     else {
         initial_sill = start_vals[3]
@@ -1376,7 +1383,7 @@ autofitVariogram.dist <- function(formula, input_data, model = c("Sph", "Exp", "
             if (is.na(start_vals[3]))
                 sill = 1
         }
-        obj = try(fit.variogram(experimental_variogram, model = vgm(psill = psill,
+        obj = try(gstat::fit.variogram(experimental_variogram, model = gstat::vgm(psill = psill,
             model = model, range = range, nugget = nugget, kappa = kappa),
             fit.ranges = c(fit_range), fit.sills = c(fit_nugget,
                 fit_sill), debug.level = 0), TRUE)

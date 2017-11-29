@@ -20,15 +20,15 @@ SpatialPoints*. Not necessary with loc.dist.}
 
 \item{idp}{specify the inverse distance weighting power. Default to 2.}
 
+\item{max.dist}{Maximum distance radius for neighbours search in the idw interpolation.
+maxdist is in km when longlat is TRUE (non-projected crs), in meters otherwise.
+If loc.dist is specified, maxdist should be in same distance unit.}
+
 \item{nmin}{if the number of nearest observations within distance maxdist is less than nmin, a missing value will be generated; see maxdist}
 
 \item{nmax}{the number of nearest observations that should be used for a kriging prediction or simulation, where nearest is defined in terms of the space of the spatial locations. By default, all observations are used}
 
 \item{longlat}{Logical Wether coordinates are not-projected (TRUE) or are projected (FALSE).}
-
-\item{maxdist}{Maximum distance radius for neighbours search in the idw interpolation.
-maxdist is in km when longlat is TRUE (non-projected crs), in meters otherwise.
-If loc.dist is specified, maxdist should be in same distance unit.}
 }
 \description{
 Inverse distance calculation using custom distances

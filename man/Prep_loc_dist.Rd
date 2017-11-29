@@ -13,7 +13,7 @@ Prep_loc_dist(loc.dist, nmin = 1, nmax, max.dist)
 
 \item{nmax}{the number of nearest observations that should be used for a kriging prediction or simulation, where nearest is defined in terms of the space of the spatial locations. By default, all observations are used}
 
-\item{maxdist}{Maximum distance radius for neighbours search in the idw interpolation.}
+\item{max.dist}{Maximum distance radius for neighbours search in the idw interpolation.}
 }
 \description{
 Prepare loc.dist for idw special case
