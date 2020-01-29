@@ -4,8 +4,15 @@
 \alias{Pt2Pts.wo.obstacle}
 \title{Calculate distance from one point to a set of points using adjacency matrix}
 \usage{
-Pt2Pts.wo.obstacle(dref.from, dref.to, dref.r, r.ref, longlat,
-  small.dist = TRUE, keep.path = FALSE)
+Pt2Pts.wo.obstacle(
+  dref.from,
+  dref.to,
+  dref.r,
+  r.ref,
+  longlat,
+  small.dist = TRUE,
+  keep.path = FALSE
+)
 }
 \arguments{
 \item{dref.from}{object of class distref.data for a single point}

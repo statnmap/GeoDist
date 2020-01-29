@@ -4,8 +4,17 @@
 \alias{idw.dist}
 \title{Inverse distance calculation using custom distances}
 \usage{
-idw.dist(data, coords, locations, loc.dist, idp = 2, max.dist, nmin = 1,
-  nmax, longlat = TRUE)
+idw.dist(
+  data,
+  coords,
+  locations,
+  loc.dist,
+  idp = 2,
+  max.dist,
+  nmin = 1,
+  nmax,
+  longlat = TRUE
+)
 }
 \arguments{
 \item{data}{vector of values to be interpolated at data coordinates}

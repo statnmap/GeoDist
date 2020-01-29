@@ -1,0 +1,56 @@
+---
+title: "Calculate distances"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{calculate-distances}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(GeoDist)
+library(raster)
+library(sp)
+```
+
+```{r, out.width="80%", fig.width=7, fig.height=7}
+crs_merc <- "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m"
+# Create raster
+r <- raster(ncol = 20, nrow = 20,
+            crs = crs_merc)
+values(r) <- 1
+values(r)[125:127] <- NA
+values(r)[145:147] <- NA
+values(r)[165:167] <- NA
+plot(r)
+
+# Create points
+from_coords <- cbind(-150, 40)
+from_sp <- SpatialPointsDataFrame(coords = from_coords, 
+                                  data = data.frame(label = "start"),
+                                  proj4string = CRS(crs_merc))
+
+to_coords <- matrix(c(50, 0, 100, -50), byrow = TRUE, ncol = 2)
+to_sp <- SpatialPointsDataFrame(coords = to_coords, 
+                                data = data.frame(label = c("end1", "end2")),
+                                proj4string = CRS(crs_merc))
+
+
+plot(r)
+points(from_sp, pch = 20, col = "blue")
+points(to_sp, pch = 20, col = "red")
+
+# For "from" and "to" being SpatialPoints
+allpath <- dist.obstacle(from = from_sp, to = to_sp, r.ref = r, keep.path = TRUE)
+
+# All path from "from[1,]" to all "to"
+lines(allpath$listLines)
+```
+

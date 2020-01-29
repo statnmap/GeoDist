@@ -4,8 +4,14 @@
 \alias{distref.raster}
 \title{Transfrom reference raster as a network of paths for distance calculation}
 \usage{
-distref.raster(r.ref, step.ang = 5, filename = paste0(tempdir(),
-  "/dref.r.RData"), r.ref3D = FALSE, n.cores, save.rdists)
+distref.raster(
+  r.ref,
+  step.ang = 5,
+  filename = paste0(tempdir(), "/dref.r.RData"),
+  r.ref3D = FALSE,
+  n.cores,
+  save.rdists
+)
 }
 \arguments{
 \item{r.ref}{Raster (1-layer) that will be used to calculate distances. Its resolution

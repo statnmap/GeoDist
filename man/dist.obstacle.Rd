@@ -4,10 +4,22 @@
 \alias{dist.obstacle}
 \title{Calculate 2D distances from points to points avoiding obstacles}
 \usage{
-dist.obstacle(from, to, r.ref, dref.r, n.cores, closest = FALSE,
-  step.ang = 5, r.ref3D = FALSE, filename = paste0(tempdir(),
-  "/dref.r.RData"), small.dist = TRUE, keep.path = FALSE,
-  longlat = raster::isLonLat(r.ref), tol = 1e-05, igraph = FALSE)
+dist.obstacle(
+  from,
+  to,
+  r.ref,
+  dref.r,
+  n.cores,
+  closest = FALSE,
+  step.ang = 5,
+  r.ref3D = FALSE,
+  filename = paste0(tempdir(), "/dref.r.RData"),
+  small.dist = TRUE,
+  keep.path = FALSE,
+  longlat = raster::isLonLat(r.ref),
+  tol = 1e-05,
+  igraph = FALSE
+)
 }
 \arguments{
 \item{from}{Point data set from which to calculate distances. May be a 2-col

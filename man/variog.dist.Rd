@@ -4,12 +4,28 @@
 \alias{variog.dist}
 \title{Variogram calculation. Modified from geoR.}
 \usage{
-variog.dist(geodata, coords = geodata$coords, data = geodata$data,
-  uvec = "default", breaks = "default", trend = "cte", lambda = 1,
-  option = c("bin", "cloud", "smooth"), estimator.type = c("classical",
-  "modulus"), nugget.tolerance, max.dist, dist.mat, pairs.min = 2,
-  bin.cloud = FALSE, direction = "omnidirectional", tolerance = pi/8,
-  unit.angle = c("radians", "degrees"), angles = FALSE, messages, ...)
+variog.dist(
+  geodata,
+  coords = geodata$coords,
+  data = geodata$data,
+  uvec = "default",
+  breaks = "default",
+  trend = "cte",
+  lambda = 1,
+  option = c("bin", "cloud", "smooth"),
+  estimator.type = c("classical", "modulus"),
+  nugget.tolerance,
+  max.dist,
+  dist.mat,
+  pairs.min = 2,
+  bin.cloud = FALSE,
+  direction = "omnidirectional",
+  tolerance = pi/8,
+  unit.angle = c("radians", "degrees"),
+  angles = FALSE,
+  messages,
+  ...
+)
 }
 \arguments{
 \item{geodata}{a list containing element \code{coords}
@@ -37,7 +53,7 @@ variog.dist(geodata, coords = geodata$coords, data = geodata$data,
   }
 
 \item{trend}{specifies the mean part of the model.
-    See documentation of \code{\link{trend.spatial}} for further details.
+    See documentation of \code{\link[geoR]{trend.spatial}} for further details.
     Defaults to \code{"cte"}.  }
 
 \item{lambda}{values of the Box-Cox transformation parameter.

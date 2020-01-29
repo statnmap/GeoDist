@@ -4,13 +4,33 @@
 \alias{likfit.dist}
 \title{Fit of gaussian field. Modified from function likfit in geoR.}
 \usage{
-likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
-  trend = "cte", ini.cov.pars, fix.nugget = FALSE, nugget = 0,
-  fix.kappa = TRUE, kappa = 0.5, fix.lambda = TRUE, lambda = 1,
-  fix.psiA = TRUE, psiA = 0, fix.psiR = TRUE, psiR = 1, cov.model,
-  dist.mat, realisations, lik.method = "ML", components = TRUE,
-  nospatial = TRUE, limits = pars.limits(), print.pars = FALSE, messages,
-  ...)
+likfit.dist(
+  geodata,
+  coords = geodata$coords,
+  data = geodata$data,
+  trend = "cte",
+  ini.cov.pars,
+  fix.nugget = FALSE,
+  nugget = 0,
+  fix.kappa = TRUE,
+  kappa = 0.5,
+  fix.lambda = TRUE,
+  lambda = 1,
+  fix.psiA = TRUE,
+  psiA = 0,
+  fix.psiR = TRUE,
+  psiR = 1,
+  cov.model,
+  dist.mat,
+  realisations,
+  lik.method = "ML",
+  components = TRUE,
+  nospatial = TRUE,
+  limits = pars.limits(),
+  print.pars = FALSE,
+  messages,
+  ...
+)
 }
 \arguments{
 \item{geodata}{a list containing elements \code{coords} and
@@ -29,7 +49,7 @@ likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
     component \code{data} of the argument \code{geodata}, if provided.  }
 
 \item{trend}{specifies the mean part of the model. See documentation
-    of \code{\link{trend.spatial}} for further details.
+    of \code{\link[geoR]{trend.spatial}} for further details.
     Defaults to \code{"cte"}.  }
 
 \item{ini.cov.pars}{initial values for the covariance parameters:
@@ -59,7 +79,7 @@ likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
     \eqn{0.5}. This parameter is valid only if the covariance function is one
     of: \code{"matern"}, \code{"powered.exponential"}, \code{"cauchy"} or
     \code{"gneiting.matern"}.  For more details on covariance functions
-    see documentation for \code{\link{cov.spatial}}.  }
+    see documentation for \code{\link[geoR]{cov.spatial}}.  }
 
 \item{fix.lambda}{logical, indicating whether the Box-Cox transformation parameter
     \eqn{\lambda}{lambda} should be regarded as fixed
@@ -84,7 +104,7 @@ likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
     \eqn{\psi_A}{psi_A}. 
     Regarded as a fixed value if \code{fix.psiA = TRUE}
     otherwise  as the initial value for the minimisation algorithm.
-    Defaults to \eqn{0}. See \code{\link{coords.aniso}} for further
+    Defaults to \eqn{0}. See \code{\link[geoR]{coords.aniso}} for further
     details on anisotropy correction.  }
 
 \item{fix.psiR}{logical, indicating whether the anisotropy ratio parameter
@@ -96,11 +116,11 @@ likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
     \eqn{\psi_R}{psi_R}. 
     Regarded as a fixed value if \code{fix.psiR = TRUE}
     otherwise as the initial value for the minimisation algorithm.
-    Defaults to \eqn{1}. See \code{\link{coords.aniso}} for further
+    Defaults to \eqn{1}. See \code{\link[geoR]{coords.aniso}} for further
     details on anisotropy correction.  }
 
 \item{cov.model}{a string specifying the model for the correlation
-    function. For further details see documentation for \code{\link{cov.spatial}}.
+    function. For further details see documentation for \code{\link[geoR]{cov.spatial}}.
     Reads values from an \code{variomodel} object passed to \code{ini.cov.pars} if any, otherwise
     defaults to the \emph{exponential} model.  }
 
@@ -108,7 +128,7 @@ likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
 
 \item{realisations}{optional. Logical or a vector indicating the number of replication
     for each datum. For further information see \code{DETAILS} below and
-    documentation for \code{\link{as.geodata}}. }
+    documentation for \code{\link[geoR]{as.geodata}}. }
 
 \item{lik.method}{(formely method.lik) options are \code{"ML"} for maximum likelihood and \code{"REML"} for
     restricted maximum likelihood. Defaults to \code{"ML"}.  }
@@ -122,7 +142,7 @@ likfit.dist(geodata, coords = geodata$coords, data = geodata$data,
 
 \item{limits}{values defining lower and upper limits for the model
     parameters used in the numerical minimisation.
-    The auxiliary function \code{\link{pars.limits}} is called to set
+    The auxiliary function \code{\link[geoR]{pars.limits}} is called to set
     the limits.
     See also \bold{Limits} in DETAILS below.}
 

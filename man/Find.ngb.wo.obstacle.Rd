@@ -4,8 +4,14 @@
 \alias{Find.ngb.wo.obstacle}
 \title{Find neighbours without obstacles in different directions}
 \usage{
-Find.ngb.wo.obstacle(i, r.ref, coords.r, r.ref.NA.nb, cell.Relpos.ngb,
-  cell.Relpos.cross)
+Find.ngb.wo.obstacle(
+  i,
+  r.ref,
+  coords.r,
+  r.ref.NA.nb,
+  cell.Relpos.ngb,
+  cell.Relpos.cross
+)
 }
 \arguments{
 \item{i}{cell number}

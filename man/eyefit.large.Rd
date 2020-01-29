@@ -8,7 +8,7 @@ eyefit.large(vario, max.phi = 2, max.sigma = 2, silent = FALSE)
 }
 \arguments{
 \item{vario}{An empirical variogram object as returned by the function
-  \code{\link{variog}}.  }
+  \code{\link[geoR]{variog}}.  }
 
 \item{max.phi}{Numeric as multiplied by max(vario$u). Default to 2.}
 

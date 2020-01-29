@@ -170,8 +170,11 @@ distref.raster <- function(r.ref, step.ang = 5,
 
 	# Find cell numbers that are crossed by direct line between 2 points
 	ngb.i <- raster::cellFromRowCol(block.r,
-	                        rownr = cell.Relpos.ngb[,1] + block.w.center[1],
-	                        colnr = cell.Relpos.ngb[,2] + block.w.center[2])
+	                        row = cell.Relpos.ngb[,1] + block.w.center[1],
+	                        col = cell.Relpos.ngb[,2] + block.w.center[2])
+
+	ngb.i <- ngb.i[!is.na(ngb.i)]
+
 	# Create lines
 	L.i <- lapply(ngb.i, function(x) {
 	  sp::Lines(list(sp::Line(list(rbind(sp::coordinates(block.r)[block.w.center.nb,],
@@ -337,8 +340,8 @@ Find.ngb.wo.obstacle <- function(i, r.ref, coords.r,
   mat.w.center <- raster::rowColFromCell(r.ref, i)
   ngb.i <-
     raster::cellFromRowCol(r.ref,
-                   rownr = cell.Relpos.ngb[, 1] + mat.w.center[1],
-                   colnr = cell.Relpos.ngb[, 2] + mat.w.center[2])
+                   row = cell.Relpos.ngb[, 1] + mat.w.center[1],
+                   col = cell.Relpos.ngb[, 2] + mat.w.center[2])
 
   if (length(r.ref.NA.nb) == 0) {
     # If no NA, all ngb are kept

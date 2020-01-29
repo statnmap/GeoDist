@@ -4,10 +4,20 @@
 \alias{autofitVariogram.dist}
 \title{Automatically fitting a variogram}
 \usage{
-autofitVariogram.dist(formula, input_data, model = c("Sph", "Exp", "Gau",
-  "Ste"), kappa = c(0.05, seq(0.2, 2, 0.1), 5, 10), fix.values = c(NA, NA,
-  NA), verbose = FALSE, GLS.model = NA, start_vals = c(NA, NA, NA),
-  cutoff, miscFitOptions = list(), dist.mat = NULL, ...)
+autofitVariogram.dist(
+  formula,
+  input_data,
+  model = c("Sph", "Exp", "Gau", "Ste"),
+  kappa = c(0.05, seq(0.2, 2, 0.1), 5, 10),
+  fix.values = c(NA, NA, NA),
+  verbose = FALSE,
+  GLS.model = NA,
+  start_vals = c(NA, NA, NA),
+  cutoff,
+  miscFitOptions = list(),
+  dist.mat = NULL,
+  ...
+)
 }
 \arguments{
 \item{formula}{formula that defines the dependent variable as a linear model

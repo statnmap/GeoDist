@@ -4,8 +4,18 @@
 \alias{krige.conv.dist}
 \title{Kriging. Modified from function krige.conv in geoR library.}
 \usage{
-krige.conv.dist(geodata, coords = geodata$coords, data = geodata$data,
-  locations, borders, krige, output, dist.mat, loc.dist, loc.loc.dist)
+krige.conv.dist(
+  geodata,
+  coords = geodata$coords,
+  data = geodata$data,
+  locations,
+  borders,
+  krige,
+  output,
+  dist.mat,
+  loc.dist,
+  loc.loc.dist
+)
 }
 \arguments{
 \item{geodata}{a list containing elements \code{coords} and
@@ -43,7 +53,7 @@ krige.conv.dist(geodata, coords = geodata$coords, data = geodata$data,
     a list with elements as for the arguments in \code{output.control}.
     Default values are assumed for arguments not provided.
     See documentation for
-    \code{\link{output.control}} for further details.  }
+    \code{\link[geoR]{output.control}} for further details.  }
 
 \item{dist.mat}{Square matrix of distances between points of the dataset}
 
